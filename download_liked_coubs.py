@@ -83,7 +83,7 @@ def get_audio_url_from_coub(coub, quality):
     return None
 
 def delete_file_if_exists(filepath):
-    if os.path.exists(filepath):
+    if filepath is not None and os.path.exists(filepath):
         os.remove(filepath)
 
 async def main():
@@ -105,8 +105,13 @@ async def main():
     if len(proceed) != 0 and proceed.lower() != 'y':
         exit(0)
     
+
     # download liked videos to dir videos/
     for i, coub in enumerate(coubs):
+        out_video_fname_tmp=None
+        video_fname=None
+        out_wav_fname=None
+        mp3_fname=None
         try:
             id = coub['permalink']
             logging.info(f"Downloading video {i+1}, permalink: {id}")
@@ -148,11 +153,15 @@ async def main():
             for tag in coub['tags']:
                 tags.append(tag['title'])
             tags_str = ';'.join(tags)
-            comment = 'Author: %s\nLink: %s\nOriginal video: %s\nTags: %s' % (
+            external_video_link = ""
+            if 'external_video' in coub['media_blocks']:
+                external_video_link = "\nExternal video: %s" % coub['media_blocks']['external_video']['url']
+            comment = 'Author: %s\nLink: %s\nOriginal video: %s\nTags: %s%s' % (
                     channel_title,
                     f'https://coub.com/{channel_permalink}',
                     f'https://coub.com/view/{id}',
-                    tags_str)
+                    tags_str,
+                    external_video_link)
             title = coub['title']
             subprocess.run(["ffmpeg", "-i", out_video_fname_tmp, "-i", mp3_fname, 
                                     "-metadata", "title=%s" % title,
