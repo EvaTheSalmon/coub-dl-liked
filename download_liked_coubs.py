@@ -11,6 +11,9 @@ import subprocess
 import logging
 import sys
 
+VideoQualities = ["higher", "high", "med"]
+AudioQualities = ["high", "med"]
+
 PAGES_DUMP_JSON_FILENAME = 'likes.json'
 
 logging.basicConfig(
@@ -55,11 +58,44 @@ def get_coubs_from_likes_pages_dump():
     logging.info(f'Total COUB\'s video count: {len(coubs)}')
     return coubs
 
+def get_video_url_from_coub(coub, quality):
+    video_info = coub['file_versions']['html5']['video']
+    if quality in video_info:
+        return video_info[quality]['url']
+    else:
+        logging.warn(f'video with quality {quality} not found, trying lower qualities')
+        for i in range(VideoQualities.index(quality), len(VideoQualities)):
+            if VideoQualities[i] in video_info:
+                return video_info[VideoQualities[i]]['url']
+    return None
+
+def get_audio_url_from_coub(coub, quality):
+    if 'audio' not in coub['file_versions']['html5']:
+        return None
+    audio_info = coub['file_versions']['html5']['audio']
+    if quality in audio_info:
+        return audio_info[quality]['url']
+    else:
+        logging.warn(f'audio with quality {quality} not found, trying lower qualities')
+        for i in range(AudioQualities.index(quality), len(AudioQualities)):
+            if AudioQualities[i] in audio_info:
+                return audio_info[AudioQualities[i]]['url']
+    return None
+
 def delete_file_if_exists(filepath):
     if os.path.exists(filepath):
         os.remove(filepath)
 
 async def main():
+    VIDEO_QUALITY = os.getenv("VIDEO_QUALITY", 'high').lower()
+    if VIDEO_QUALITY not in VideoQualities:
+        sys.exit(f"Can't use video quality {VIDEO_QUALITY}, allowed values: {VideoQualities}")
+    AUDIO_QUALITY = os.getenv("AUDIO_QUALITY", 'high').lower()
+    if AUDIO_QUALITY not in AudioQualities:
+        sys.exit(f"Can't use audio quality {AUDIO_QUALITY}, allowed values: {AudioQualities}")
+    logging.info(f'Using {VIDEO_QUALITY} video quality')
+    logging.info(f'Using {AUDIO_QUALITY} audio quality')
+
     if not os.path.exists(PAGES_DUMP_JSON_FILENAME):
         await save_likes_pages()
 
@@ -76,22 +112,20 @@ async def main():
             logging.info(f"Downloading video {i+1}, permalink: {id}")
 
             out_video_fpath = os.path.join('videos', f'{id}.mp4')
+            if os.path.exists(out_video_fpath):
+                logging.info(f"{out_video_fpath} already exists, ignoring")
+                continue
             out_video_fname_tmp = f'{id}_tmp.mp4'
             out_wav_fname = f'{id}.wav'
-
-            if os.path.exists(out_video_fpath):
-                logging.info(f"{out_video_fpath} already exists")
-                continue
-
-            video_url = coub['file_versions']['html5']['video']['high']['url']
+                        
+            video_url = get_video_url_from_coub(coub, VIDEO_QUALITY)
             video_fname = video_url.split('/')[-1]
 
-            # there could be coub's without audio
-            if 'audio' not in coub['file_versions']['html5']:
+            mp3_url = get_audio_url_from_coub(coub, AUDIO_QUALITY)
+            # there could be coub's without music
+            if mp3_url is None:
                 urllib.request.urlretrieve(video_url, out_video_fpath)
                 continue
-
-            mp3_url = coub['file_versions']['html5']['audio']['high']['url']
             mp3_fname = mp3_url.split('/')[-1]
 
             urllib.request.urlretrieve(mp3_url, mp3_fname)
