@@ -79,15 +79,20 @@ async def main():
             out_video_fname_tmp = f'{id}_tmp.mp4'
             out_wav_fname = f'{id}.wav'
 
-            video_url = coub['file_versions']['html5']['video']['high']['url']
-            video_fname = video_url.split('/')[-1]
-
-            mp3_url = coub['file_versions']['html5']['audio']['high']['url']
-            mp3_fname = mp3_url.split('/')[-1]
- 
             if os.path.exists(out_video_fpath):
                 logging.info(f"{out_video_fpath} already exists")
                 continue
+
+            video_url = coub['file_versions']['html5']['video']['high']['url']
+            video_fname = video_url.split('/')[-1]
+
+            # there could be coub's without audio
+            if 'audio' not in coub['file_versions']['html5']:
+                urllib.request.urlretrieve(video_url, out_video_fpath)
+                continue
+
+            mp3_url = coub['file_versions']['html5']['audio']['high']['url']
+            mp3_fname = mp3_url.split('/')[-1]
 
             urllib.request.urlretrieve(mp3_url, mp3_fname)
             urllib.request.urlretrieve(video_url, video_fname)
