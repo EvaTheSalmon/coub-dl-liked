@@ -11,6 +11,9 @@ import subprocess
 import logging
 import sys
 
+import unicodedata
+import re
+
 VideoQualities = ["higher", "high", "med"]
 AudioQualities = ["high", "med"]
 
@@ -24,6 +27,22 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
+
+def slugify(value, allow_unicode=False):
+    """
+    Taken from https://github.com/django/django/blob/master/django/utils/text.py
+    Convert to ASCII if 'allow_unicode' is False. Convert spaces or repeated
+    dashes to single dashes. Remove characters that aren't alphanumerics,
+    underscores, or hyphens. Convert to lowercase. Also strip leading and
+    trailing whitespace, dashes, and underscores.
+    """
+    value = str(value)
+    if allow_unicode:
+        value = unicodedata.normalize('NFKC', value)
+    else:
+        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+    value = re.sub(r'[^\w\s-]', '', value.lower())
+    return re.sub(r'[-\s]+', '-', value).strip('-_')
 
 async def get_likes_page_as_json(session, i, api_token):
     logging.debug(f"Fetching page {i}")
@@ -43,12 +62,12 @@ async def save_likes_pages():
         pages = await asyncio.gather(*(get_likes_page_as_json(session, i, api_token) for i in range(1, total_pages+1)))
         logging.info(f"{len(pages)} pages fetched")
     # save fetched info
-    with open(PAGES_DUMP_JSON_FILENAME, 'w') as f:
+    with open(PAGES_DUMP_JSON_FILENAME, 'w', encoding='utf-8') as f:
         json.dump(pages, f)
     logging.info(f"COUB's info dumped to a file")
 
 def get_coubs_from_likes_pages_dump():
-    with open(PAGES_DUMP_JSON_FILENAME, 'r') as f:
+    with open(PAGES_DUMP_JSON_FILENAME, 'r', encoding='utf-8') as f:
         pages = json.load(f)
     logging.info(f"COUB's info loaded from a file")
 
@@ -114,11 +133,15 @@ async def main():
         mp3_fname=None
         try:
             id = coub['permalink']
-            logging.info(f"Downloading video {i+1}, permalink: {id}")
+            title = slugify(coub['title'], True)
+            filename = ""
+            filename = title if filename=="" else id
 
-            out_video_fpath = os.path.join('videos', f'{id}.mp4')
+            logging.info(f"Downloading video {i+1}, permalink: {id}, filename: {filename.encode('utf-8')}")
+
+            out_video_fpath = os.path.join('videos', f'{filename}.mp4').encode('utf-8')
             if os.path.exists(out_video_fpath):
-                logging.info(f"{out_video_fpath} already exists, ignoring")
+                logging.info(f"{out_video_fpath} already exists, ignoring. Permalink {id}")
                 continue
             out_video_fname_tmp = f'{id}_tmp.mp4'
             out_wav_fname = f'{id}.wav'
@@ -149,6 +172,7 @@ async def main():
             # combine MP3 with looped video, add metadata
             channel_title = coub['channel']['title']
             channel_permalink = coub['channel']['permalink']
+            created = coub['created_at']
             tags = []
             for tag in coub['tags']:
                 tags.append(tag['title'])
@@ -162,10 +186,11 @@ async def main():
                     f'https://coub.com/view/{id}',
                     tags_str,
                     external_video_link)
-            title = coub['title']
+            
             subprocess.run(["ffmpeg", "-i", out_video_fname_tmp, "-i", mp3_fname, 
                                     "-metadata", "title=%s" % title,
                                     "-metadata", "comment=%s" % comment,
+                                    "-metadata", "creation_time=%s" % created,
                                     "-c:v", "copy", "-c:a", "aac", out_video_fpath], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).check_returncode()
         except Exception as e:
             logging.error(f'Failed to process video {id}')
