@@ -134,14 +134,13 @@ async def main():
         try:
             id = coub['permalink']
             title = slugify(coub['title'], True)
-            filename = ""
-            filename = title if filename=="" else id
+            filename = id if title == "" else title + "-" + id
 
-            logging.info(f"Downloading video {i+1}, permalink: {id}, filename: {filename.encode('utf-8')}")
+            logging.info(f"Downloading video {i+1}, filename: {filename.encode('utf-8')}")
 
             out_video_fpath = os.path.join('videos', f'{filename}.mp4').encode('utf-8')
             if os.path.exists(out_video_fpath):
-                logging.info(f"{out_video_fpath} already exists, ignoring. Permalink {id}")
+                logging.info(f"{out_video_fpath} already exists, ignoring.")
                 continue
             out_video_fname_tmp = f'{id}_tmp.mp4'
             out_wav_fname = f'{id}.wav'
@@ -172,7 +171,7 @@ async def main():
             # combine MP3 with looped video, add metadata
             channel_title = coub['channel']['title']
             channel_permalink = coub['channel']['permalink']
-            created = coub['created_at']
+            liked_date = coub['updated_at']
             tags = []
             for tag in coub['tags']:
                 tags.append(tag['title'])
@@ -190,7 +189,7 @@ async def main():
             subprocess.run(["ffmpeg", "-i", out_video_fname_tmp, "-i", mp3_fname, 
                                     "-metadata", "title=%s" % title,
                                     "-metadata", "comment=%s" % comment,
-                                    "-metadata", "creation_time=%s" % created,
+                                    "-metadata", "creation_time=%s" % liked_date,
                                     "-c:v", "copy", "-c:a", "aac", out_video_fpath], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).check_returncode()
         except Exception as e:
             logging.error(f'Failed to process video {id}')
