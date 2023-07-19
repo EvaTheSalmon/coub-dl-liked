@@ -10,6 +10,9 @@ import asyncio
 import subprocess
 import logging
 import sys
+from dotenv import load_dotenv
+import ffmpeg
+
 
 import unicodedata
 import re
@@ -19,14 +22,19 @@ AudioQualities = ["high", "med"]
 
 PAGES_DUMP_JSON_FILENAME = 'likes.json'
 
+load_dotenv('.env')
+api_token = os.environ.get('API_TOKEN')
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)-5.5s]  %(message)s",
     handlers=[
-        logging.FileHandler(f"{datetime.now().strftime('%d-%b-%Y %H_%M_%S')}.log"),
+        logging.FileHandler(
+            f"{datetime.now().strftime('%d-%b-%Y %H_%M_%S')}.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
+
 
 def slugify(value, allow_unicode=False):
     """
@@ -40,18 +48,20 @@ def slugify(value, allow_unicode=False):
     if allow_unicode:
         value = unicodedata.normalize('NFKC', value)
     else:
-        value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
+        value = unicodedata.normalize('NFKD', value).encode(
+            'ascii', 'ignore').decode('ascii')
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '-', value).strip('-_')
+
 
 async def get_likes_page_as_json(session, i, api_token):
     logging.debug(f"Fetching page {i}")
     async with session.get(f"https://coub.com/api/v2/timeline/likes?page={i}&per_page=25&api_token={api_token}") as response:
         return await response.json()
 
+
 async def save_likes_pages():
     # https://coub.com/api/v2/users/me
-    api_token = os.getenv("API_TOKEN")
     if api_token is None:
         sys.exit("API_TOKEN environment variable must be specified")
     # async fetch all "pages" with liked videos info
@@ -66,6 +76,7 @@ async def save_likes_pages():
         json.dump(pages, f)
     logging.info(f"COUB's info dumped to a file")
 
+
 def get_coubs_from_likes_pages_dump():
     with open(PAGES_DUMP_JSON_FILENAME, 'r', encoding='utf-8') as f:
         pages = json.load(f)
@@ -77,16 +88,19 @@ def get_coubs_from_likes_pages_dump():
     logging.info(f'Total COUB\'s video count: {len(coubs)}')
     return coubs
 
+
 def get_video_url_from_coub(coub, quality):
     video_info = coub['file_versions']['html5']['video']
     if quality in video_info:
         return video_info[quality]['url']
     else:
-        logging.warn(f'video with quality {quality} not found, trying lower qualities')
+        logging.warn(
+            f'video with quality {quality} not found, trying lower qualities')
         for i in range(VideoQualities.index(quality), len(VideoQualities)):
             if VideoQualities[i] in video_info:
                 return video_info[VideoQualities[i]]['url']
     return None
+
 
 def get_audio_url_from_coub(coub, quality):
     if 'audio' not in coub['file_versions']['html5']:
@@ -95,23 +109,34 @@ def get_audio_url_from_coub(coub, quality):
     if quality in audio_info:
         return audio_info[quality]['url']
     else:
-        logging.warn(f'audio with quality {quality} not found, trying lower qualities')
+        logging.warn(
+            f'audio with quality {quality} not found, trying lower qualities')
         for i in range(AudioQualities.index(quality), len(AudioQualities)):
             if AudioQualities[i] in audio_info:
                 return audio_info[AudioQualities[i]]['url']
     return None
 
+
 def delete_file_if_exists(filepath):
     if filepath is not None and os.path.exists(filepath):
         os.remove(filepath)
 
+def sanitize_string(input_string):
+    forbidden_chars = ['=', ',', '/']
+    
+    sanitized_string = re.sub(f"[{''.join(re.escape(c) for c in forbidden_chars)}]", '', input_string)
+
+    return sanitized_string
+
 async def main():
     VIDEO_QUALITY = os.getenv("VIDEO_QUALITY", 'high').lower()
     if VIDEO_QUALITY not in VideoQualities:
-        sys.exit(f"Can't use video quality {VIDEO_QUALITY}, allowed values: {VideoQualities}")
+        sys.exit(
+            f"Can't use video quality {VIDEO_QUALITY}, allowed values: {VideoQualities}")
     AUDIO_QUALITY = os.getenv("AUDIO_QUALITY", 'high').lower()
     if AUDIO_QUALITY not in AudioQualities:
-        sys.exit(f"Can't use audio quality {AUDIO_QUALITY}, allowed values: {AudioQualities}")
+        sys.exit(
+            f"Can't use audio quality {AUDIO_QUALITY}, allowed values: {AudioQualities}")
     logging.info(f'Using {VIDEO_QUALITY} video quality')
     logging.info(f'Using {AUDIO_QUALITY} audio quality')
 
@@ -123,28 +148,29 @@ async def main():
     proceed = input("Proceed to download. y/n (y) ")
     if len(proceed) != 0 and proceed.lower() != 'y':
         exit(0)
-    
 
     # download liked videos to dir videos/
     for i, coub in enumerate(coubs):
-        out_video_fname_tmp=None
-        video_fname=None
-        out_wav_fname=None
-        mp3_fname=None
+        out_video_fname_tmp = None
+        video_fname = None
+        out_wav_fname = None
+        mp3_fname = None
         try:
             id = coub['permalink']
             title = slugify(coub['title'], True)
             filename = id if title == "" else title + "-" + id
 
-            logging.info(f"Downloading video {i+1}, filename: {filename.encode('utf-8')}")
+            logging.info(
+                f"Downloading video {i+1}, filename: {filename.encode('utf-8')}")
 
-            out_video_fpath = os.path.join('videos', f'{filename}.mp4').encode('utf-8')
+            out_video_fpath = os.path.join(
+                'videos', f'{filename}.mp4').encode('utf-8')
             if os.path.exists(out_video_fpath):
                 logging.info(f"{out_video_fpath} already exists, ignoring.")
                 continue
             out_video_fname_tmp = f'{id}_tmp.mp4'
             out_wav_fname = f'{id}.wav'
-                        
+
             video_url = get_video_url_from_coub(coub, VIDEO_QUALITY)
             video_fname = video_url.split('/')[-1]
 
@@ -158,39 +184,61 @@ async def main():
             urllib.request.urlretrieve(mp3_url, mp3_fname)
             urllib.request.urlretrieve(video_url, video_fname)
 
-            # convert mp3 to wav
-            subprocess.run(['ffmpeg', '-i', mp3_fname, '-vn', '-acodec', 'pcm_s16le', 
-                '-ac', '2', '-ar', '44100', '-f', 'wav', out_wav_fname], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).check_returncode()
-            # read wav and get file len in seconds
-            x, sr = sf.read(f'{out_wav_fname}')
-            wav_len = len(x)/sr
-            # loop video to duration of file len
-            subprocess.run(['ffmpeg', '-stream_loop', '-1', '-t', str(wav_len), 
-                '-i', video_fname, '-c', 'copy', out_video_fname_tmp], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).check_returncode()
-            
+            ffmpeg.input(mp3_fname).output(
+                            out_wav_fname, 
+                            acodec='pcm_s16le',
+                            ac=2, 
+                            ar='44100', 
+                            f='wav', 
+                            loglevel='error'\
+            ).run()
+
+            # Read wav and get file length in seconds
+            x, sr = sf.read(out_wav_fname)
+            wav_len = len(x) / sr
+
+            # Loop video to the duration of the file length
+            ffmpeg.input(video_fname, stream_loop='-1'
+                        ).output(
+                            out_video_fname_tmp,
+                            t=wav_len, 
+                            c='copy', 
+                            loglevel='error'
+            ).run()
+
             # combine MP3 with looped video, add metadata
             channel_title = coub['channel']['title']
             channel_permalink = coub['channel']['permalink']
             liked_date = coub['updated_at']
             tags = []
+            
             for tag in coub['tags']:
                 tags.append(tag['title'])
-            tags_str = ';'.join(tags)
-            external_video_link = ""
-            if 'external_video' in coub['media_blocks']:
-                external_video_link = "\nExternal video: %s" % coub['media_blocks']['external_video']['url']
-            comment = 'Author: %s\nLink: %s\nOriginal video: %s\nTags: %s%s' % (
-                    channel_title,
-                    f'https://coub.com/{channel_permalink}',
-                    f'https://coub.com/view/{id}',
-                    tags_str,
-                    external_video_link)
             
-            subprocess.run(["ffmpeg", "-i", out_video_fname_tmp, "-i", mp3_fname, 
-                                    "-metadata", "title=%s" % title,
-                                    "-metadata", "comment=%s" % comment,
-                                    "-metadata", "creation_time=%s" % liked_date,
-                                    "-c:v", "copy", "-c:a", "aac", out_video_fpath], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).check_returncode()
+            tags_str = ';'.join(tags)
+            
+            external_video_link = ""
+            
+            if 'external_video' in coub['media_blocks']:
+                external_video_link = "\nExternal video: %s" % coub[
+                    'media_blocks']['external_video']['url']
+            
+            comment = 'Author: %s\nLink: %s\nOriginal video: %s\nTags: %s%s' % (
+                channel_title,
+                f'https://coub.com/{channel_permalink}',
+                f'https://coub.com/view/{id}',
+                tags_str,
+                external_video_link)
+
+            ffmpeg.input(out_video_fname_tmp, i=mp3_fname).output(
+                vcodec='copy',
+                acodec='aac',
+                **{'strict': 'experimental'},
+                metadata={'title=': title, 'comment=': comment, 'creation_time=':liked_date},  
+                filename=out_video_fpath,
+                loglevel='error'
+            ).run()
+
         except Exception as e:
             logging.error(f'Failed to process video {id}')
             logging.error(traceback.format_exc())

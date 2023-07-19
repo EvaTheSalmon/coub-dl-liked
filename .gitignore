@@ -2,3 +2,4 @@
 videos/*
 *.json
 venv
+.env
