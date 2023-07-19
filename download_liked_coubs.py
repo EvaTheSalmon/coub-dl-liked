@@ -121,15 +121,10 @@ def delete_file_if_exists(filepath):
     if filepath is not None and os.path.exists(filepath):
         os.remove(filepath)
 
-def sanitize_string(input_string):
-    forbidden_chars = ['=', ',', '/']
-    
-    sanitized_string = re.sub(f"[{''.join(re.escape(c) for c in forbidden_chars)}]", '', input_string)
-
-    return sanitized_string
 
 async def main():
     VIDEO_QUALITY = os.getenv("VIDEO_QUALITY", 'high').lower()
+    # todo: put quality params to .env
     if VIDEO_QUALITY not in VideoQualities:
         sys.exit(
             f"Can't use video quality {VIDEO_QUALITY}, allowed values: {VideoQualities}")
@@ -159,7 +154,7 @@ async def main():
             id = coub['permalink']
             title = slugify(coub['title'], True)
             filename = id if title == "" else title + "-" + id
-
+            # todo: liked_date[:4:]+"/"+liked_date[5:7:] put exist check to end, sort by year and month
             logging.info(
                 f"Downloading video {i+1}, filename: {filename.encode('utf-8')}")
 
@@ -185,12 +180,12 @@ async def main():
             urllib.request.urlretrieve(video_url, video_fname)
 
             ffmpeg.input(mp3_fname).output(
-                            out_wav_fname, 
-                            acodec='pcm_s16le',
-                            ac=2, 
-                            ar='44100', 
-                            f='wav', 
-                            loglevel='error'\
+                out_wav_fname,
+                acodec='pcm_s16le',
+                ac=2,
+                ar='44100',
+                f='wav',
+                loglevel='error'
             ).run()
 
             # Read wav and get file length in seconds
@@ -199,11 +194,11 @@ async def main():
 
             # Loop video to the duration of the file length
             ffmpeg.input(video_fname, stream_loop='-1'
-                        ).output(
-                            out_video_fname_tmp,
-                            t=wav_len, 
-                            c='copy', 
-                            loglevel='error'
+                         ).output(
+                out_video_fname_tmp,
+                t=wav_len,
+                c='copy',
+                loglevel='error'
             ).run()
 
             # combine MP3 with looped video, add metadata
@@ -211,18 +206,18 @@ async def main():
             channel_permalink = coub['channel']['permalink']
             liked_date = coub['updated_at']
             tags = []
-            
+
             for tag in coub['tags']:
                 tags.append(tag['title'])
-            
+
             tags_str = ';'.join(tags)
-            
+
             external_video_link = ""
-            
+
             if 'external_video' in coub['media_blocks']:
                 external_video_link = "\nExternal video: %s" % coub[
                     'media_blocks']['external_video']['url']
-            
+
             comment = 'Author: %s\nLink: %s\nOriginal video: %s\nTags: %s%s' % (
                 channel_title,
                 f'https://coub.com/{channel_permalink}',
@@ -234,7 +229,8 @@ async def main():
                 vcodec='copy',
                 acodec='aac',
                 **{'strict': 'experimental'},
-                metadata={'title=': title, 'comment=': comment, 'creation_time=':liked_date},  
+                metadata={'title=': title, 'comment=': comment,
+                          'creation_time=': liked_date},
                 filename=out_video_fpath,
                 loglevel='error'
             ).run()
