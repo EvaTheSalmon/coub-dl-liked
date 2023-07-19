@@ -10,16 +10,18 @@ Install dependencies:
 ```
 pip install -r requirements.txt
 ```
-Install [ffmpeg](https://ffmpeg.org/) programm ([Windows detailed instruction](https://www.geeksforgeeks.org/how-to-install-ffmpeg-on-windows/))
 
-Go to https://coub.com/api/v2/users/me and find your `api_token`: a long sequence of characters, copy it
+Go to https://coub.com/api/v2/users/me and find your `api_token`: a long sequence of characters, copy it and place in ```.env``` file as following:
+
+```
+API_TOKEN=foobar
+```
 
 Now you're ready to download your sweet COUB's:
 
 Windows:
 ```
 cd coub-dl-liked
-set API_TOKEN=your_long_token
 # you could set audio and video quality preference
 # set VIDEO_QUALITY=high     available values: higher, high, med; default - high
 # set AUDIO_QUALITY=high     available values: high, med; default - high
@@ -28,11 +30,9 @@ python .\download_liked_coubs.py
 Linux&MAC:
 ```
 cd coub-dl-liked
-API_TOKEN=your_long_token VIDEO_QUALITY=high AUDIO_QUALITY=high python ./download_liked_coubs.py
+VIDEO_QUALITY=high AUDIO_QUALITY=high python ./download_liked_coubs.py
 ```
 
 All video loops would be downloaded to `/videos` directory.
 
 Disk usage estimation: 1000 higher quality videos ~38 GB
-
-Tested on Windows 10, Ubuntu 20.04, python 3.10.3
