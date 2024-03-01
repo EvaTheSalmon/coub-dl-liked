@@ -13,7 +13,6 @@ import sys
 from dotenv import load_dotenv
 import ffmpeg
 
-
 import unicodedata
 import re
 
@@ -30,7 +29,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)-5.5s]  %(message)s",
     handlers=[
         logging.FileHandler(
-            f"{datetime.now().strftime('%d-%b-%Y %H_%M_%S')}.log"),
+            "logs/" + f"{datetime.now().strftime('%d-%b-%Y %H_%M_%S')}.log"),
         logging.StreamHandler(sys.stdout)
     ]
 )
@@ -49,7 +48,7 @@ def slugify(value, allow_unicode=False):
         value = unicodedata.normalize('NFKC', value)
     else:
         value = unicodedata.normalize('NFKD', value).encode(
-            'ascii', 'ignore').decode('ascii')
+            'ascii', 'ignore', errors='xmlcharrefreplace').decode('ascii')
     value = re.sub(r'[^\w\s-]', '', value.lower())
     return re.sub(r'[-\s]+', '-', value).strip('-_')
 
@@ -153,13 +152,20 @@ async def main():
         try:
             id = coub['permalink']
             title = slugify(coub['title'], True)
+            liked_date = coub['updated_at']
             filename = id if title == "" else title + "-" + id
-            # todo: liked_date[:4:]+"/"+liked_date[5:7:] put exist check to end, sort by year and month
             logging.info(
-                f"Downloading video {i+1}, filename: {filename.encode('utf-8')}")
+                f"Downloading video {i+1}, filename: {filename.encode('utf-8', errors='xmlcharrefreplace')}")
+            
+            dateYearPath = "videos/" + str(liked_date[:4:]) + "/" + str(liked_date[5:7:])
+
+            # logging.info("Current liked date is: " + liked_date + ", where: " + dateYearPath)
+            
+            if not os.path.exists(dateYearPath):
+                os.makedirs(dateYearPath)
 
             out_video_fpath = os.path.join(
-                'videos', f'{filename}.mp4').encode('utf-8')
+                dateYearPath , f'{filename}.mp4').encode('utf-8', errors='xmlcharrefreplace')
             if os.path.exists(out_video_fpath):
                 logging.info(f"{out_video_fpath} already exists, ignoring.")
                 continue
@@ -178,6 +184,9 @@ async def main():
 
             urllib.request.urlretrieve(mp3_url, mp3_fname)
             urllib.request.urlretrieve(video_url, video_fname)
+
+            # todo fix urllib.error.ContentTooShortError: <urlopen error retrieval incomplete: got only 829468 out of 908891 bytes>
+            # retry/resume dunctionality
 
             ffmpeg.input(mp3_fname).output(
                 out_wav_fname,
@@ -204,7 +213,7 @@ async def main():
             # combine MP3 with looped video, add metadata
             channel_title = coub['channel']['title']
             channel_permalink = coub['channel']['permalink']
-            liked_date = coub['updated_at']
+            
             tags = []
 
             for tag in coub['tags']:
