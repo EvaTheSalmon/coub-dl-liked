@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  app:
+    image: download_liked_coubs
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - ./logs:/logs
+    ports:
+      - "8000:8000"  
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - PYTHONUNBUFFERED=1
+    command: ["python", "download_liked_coubs.py"]
