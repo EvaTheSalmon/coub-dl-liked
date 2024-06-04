@@ -8,10 +8,9 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ./logs:/logs
-    environment:
-      - rerun_in_minutes = 1440
     ports:
       - "8000:8000"  
     environment:
+      - rerun_in_minutes = 1440
       - PYTHONDONTWRITEBYTECODE = 1
       - PYTHONUNBUFFERED = 1
