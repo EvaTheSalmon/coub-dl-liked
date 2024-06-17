@@ -1,5 +1,6 @@
 *.log
 videos/*
+.vscode
 *.json
 venv
 .env
