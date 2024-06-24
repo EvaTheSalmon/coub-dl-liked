@@ -76,6 +76,7 @@ class CoubDownloader:
         async with session.get(
             f"https://coub.com/api/v2/timeline/likes?page={page}&per_page=25&api_token={api_token}"
         ) as response:
+            logging.debug(response.json())
             return await response.json()
 
     def __get_media_url(self, coub, quality, media_type, qualities) -> str:
@@ -137,7 +138,7 @@ class CoubDownloader:
                 [out_video_fname_tmp, video_fname, out_wav_fname, mp3_fname]
             )
 
-    def __process_audio(mp3_fname, out_wav_fname) -> None:
+    def __process_audio(self, mp3_fname, out_wav_fname) -> None:
         """Process audio using ffmpeg."""
         ffmpeg.input(mp3_fname).output(
             out_wav_fname,
@@ -148,18 +149,18 @@ class CoubDownloader:
             loglevel="error",
         ).run()
 
-    def __get_wav_length(wav_fname) -> float:
+    def __get_wav_length(self, wav_fname) -> float:
         """Get the length of the WAV file."""
         x, sr = sf.read(wav_fname)
         return len(x) / sr
 
-    def __loop_video(video_fname, out_video_fname_tmp, duration) -> None:
+    def __loop_video(self, video_fname, out_video_fname_tmp, duration) -> None:
         """Loop video using ffmpeg."""
         ffmpeg.input(video_fname, stream_loop="-1").output(
             out_video_fname_tmp, t=duration, c="copy", loglevel="error"
         ).run()
 
-    def __combine_video_audio(video_fname, audio_fname, out_fpath, coub) -> None:
+    def __combine_video_audio(self, video_fname, audio_fname, out_fpath, coub) -> None:
         """Combine video and audio using ffmpeg."""
         channel_title = coub["channel"]["title"]
         channel_permalink = coub["channel"]["permalink"]
@@ -189,7 +190,7 @@ class CoubDownloader:
             loglevel="error",
         ).run()
 
-    def __cleanup_temp_files(filenames) -> None:
+    def __cleanup_temp_files(self, filenames) -> None:
         """Clean up temporary files."""
         for fname in filenames:
             if fname and os.path.exists(fname):
@@ -224,7 +225,7 @@ class CoubDownloader:
             pages = json.load(f)
         logging.info("COUB's info loaded from a file")
 
-        coubs = [coub for page in pages for coub in page.get("coubs", [])]
+        coubs = [coub for page in pages if page is not None for coub in page.get("coubs", [])]
         logging.info(f"Total COUB's video count: {len(coubs)}")
         return coubs
 
@@ -252,7 +253,7 @@ class CoubDownloader:
                 return
 
             self.__download_coub(
-                coub, id, self.video_quality, self.audio_quality, out_video_fpath
+                coub, id, self.VIDEO_QUALITY, self.AUDIO_QUALITY, out_video_fpath
             )
         except Exception as e:
             logging.error(f"Failed to process video {id}")
