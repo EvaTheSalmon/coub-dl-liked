@@ -8,7 +8,7 @@ class DirectoryScanner:
     def __init__(self):
         self._setup_logging()
 
-    def _setup_logging(self):
+    def __setup_logging(self):
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s [%(levelname)-5.5s]  %(message)s",
@@ -17,6 +17,12 @@ class DirectoryScanner:
                 logging.StreamHandler(sys.stdout),
             ],
         )
+
+    def __check_if_file_in_json(self, file_name: str, json_dat: dict) -> bool:
+        if file_name in json_data:
+            return True
+        else:
+            return False
 
     def load_names_from_directory(self, directory: str) -> dict:
         file_names = {}
@@ -36,13 +42,7 @@ class DirectoryScanner:
         
     def compare_json_and_file_structure(self, json_data: dict, directory_structure_data: dict) -> bool:
         return not bool(json_data - directory_structure_data)
-    
-    def check_if_file_in_json(self, file_name: str, json_dat: dict) -> bool:
-        if file_name in json_data:
-            return True
-        else:
-            return False
-    
+
     def save_names_to_json(self, file_names: dict, json_path: str) -> None:
         with open(json_path, 'w') as f:
             json.dump(file_names, f, indent=4)
