@@ -13,7 +13,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EvaTheSalmon/coub-dl/internal/coub"
+	"github.com/mrcsin/coub-dl/internal/coub"
 )
 
 func cmdDownload(ctx context.Context, args []string) int {

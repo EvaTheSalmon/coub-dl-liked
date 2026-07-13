@@ -1,3 +1,3 @@
-module github.com/EvaTheSalmon/coub-dl
+module github.com/mrcsin/coub-dl
 
 go 1.26.1

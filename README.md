@@ -4,9 +4,9 @@
     <img src=./logo.png width=400 />
 </div>
 
-[![build](https://github.com/EvaTheSalmon/coub-dl/actions/workflows/ci.yml/badge.svg)](https://github.com/EvaTheSalmon/coub-dl/actions/workflows/ci.yml)
-[![Coverage Status](https://coveralls.io/repos/github/EvaTheSalmon/coub-dl/badge.svg?branch=master)](https://coveralls.io/github/EvaTheSalmon/coub-dl?branch=master)
-[![Go Report Card](https://goreportcard.com/badge/github.com/EvaTheSalmon/coub-dl)](https://goreportcard.com/report/github.com/EvaTheSalmon/coub-dl)
+[![build](https://github.com/mrcsin/coub-dl/actions/workflows/ci.yml/badge.svg)](https://github.com/mrcsin/coub-dl/actions/workflows/ci.yml)
+[![Coverage Status](https://coveralls.io/repos/github/mrcsin/coub-dl/badge.svg?branch=master)](https://coveralls.io/github/mrcsin/coub-dl?branch=master)
+[![Go Report Card](https://goreportcard.com/badge/github.com/mrcsin/coub-dl)](https://goreportcard.com/report/github.com/mrcsin/coub-dl)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 A small command-line tool to download videos from [coub.com](https://coub.com).
@@ -26,16 +26,16 @@ skipped.
 ## Install
 
 Prebuilt binaries for Linux, macOS, and Windows are attached to each
-[release](https://github.com/EvaTheSalmon/coub-dl/releases). Or install with Go:
+[release](https://github.com/mrcsin/coub-dl/releases). Or install with Go:
 
 ```sh
-go install github.com/EvaTheSalmon/coub-dl@latest
+go install github.com/mrcsin/coub-dl@latest
 ```
 
 Or build from source:
 
 ```sh
-git clone https://github.com/EvaTheSalmon/coub-dl
+git clone https://github.com/mrcsin/coub-dl
 cd coub-dl
 go build -o coub-dl .
 ```

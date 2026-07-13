@@ -53,7 +53,7 @@ git log --oneline $(git describe --tags --abbrev=0 2>/dev/null)..HEAD 2>/dev/nul
 - Group by conventional-commit type with `##` sections separated by blank lines
   (`## Features`, `## Performance`, `## Fixes`; add others as needed).
 - Each line mirrors its commit: `type(scope) - description #PR`.
-- End with `**Full Changelog**: https://github.com/EvaTheSalmon/coub-dl/compare/<prev>...<version>`.
+- End with `**Full Changelog**: https://github.com/mrcsin/coub-dl/compare/<prev>...<version>`.
 - Exclude behaviour-neutral commits (refactor, chore, docs) unless notable.
 
 Example:
@@ -65,7 +65,7 @@ Example:
 ## Fixes
 - fix(sync) - return 130 on interrupt instead of 0 #20
 
-**Full Changelog**: https://github.com/EvaTheSalmon/coub-dl/compare/v1.0.0...v1.1.0
+**Full Changelog**: https://github.com/mrcsin/coub-dl/compare/v1.0.0...v1.1.0
 ```
 
 Two quirks to honor:
@@ -100,7 +100,7 @@ gh run watch <run-id> --exit-status
 gh release view <version>
 ```
 
-- Pass: report `https://github.com/EvaTheSalmon/coub-dl/releases/tag/<version>` and confirm
+- Pass: report `https://github.com/mrcsin/coub-dl/releases/tag/<version>` and confirm
   the 5 assets are attached.
 - Fail: show the failing step and logs, ask how to proceed.
 
@@ -110,7 +110,7 @@ The local `gh` PAT can push tags (it has `contents`) but **cannot create/edit PR
 published release** — those return `403 Resource not accessible by personal access token`.
 The release itself still publishes (Actions uses its own `GITHUB_TOKEN`). If the published
 body needs a post-publish fix, edit it in the web UI:
-`https://github.com/EvaTheSalmon/coub-dl/releases/edit/<version>`.
+`https://github.com/mrcsin/coub-dl/releases/edit/<version>`.
 
 ## Redo a release (delete and retag)
 
